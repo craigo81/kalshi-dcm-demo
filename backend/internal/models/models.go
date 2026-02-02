@@ -314,6 +314,7 @@ type ComplianceAlert struct {
 	CreatedAt   time.Time `json:"created_at"`
 	ResolvedAt  *time.Time `json:"resolved_at,omitempty"`
 	ResolvedBy  string    `json:"resolved_by,omitempty"`
+	Notes       string    `json:"notes,omitempty"` // Resolution notes
 }
 
 // EmergencyHalt tracks market-wide or market-specific trading halts.
