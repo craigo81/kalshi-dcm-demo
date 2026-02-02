@@ -314,7 +314,7 @@ This is a **DEMO APPLICATION**. The following are mocked/simulated:
 - ❌ **No real funds** - All deposits are simulated
 - ❌ **No real trades** - Orders don't route to Kalshi's authenticated API
 - ❌ **Mock KYC** - Auto-approves after delay
-- ❌ **In-memory storage** - Data resets on server restart
+- ✅ **JSON persistence** - Data survives restarts (set `ENABLE_PERSISTENCE=true`)
 - ❌ **No encryption** - Passwords are hashed but no TLS enforcement
 
 ### For Production, You Need:
@@ -336,12 +336,95 @@ This is a **DEMO APPLICATION**. The following are mocked/simulated:
 |----------|---------|-------------|
 | `PORT` | `8080` | Server port |
 | `KALSHI_API_URL` | `https://api.elections.kalshi.com/trade-api/v2` | Kalshi API base URL |
+| `ENABLE_PERSISTENCE` | `true` | Enable JSON file persistence (CP 18) |
+| `DATA_DIR` | `./data` | Directory for persistence files |
 
 ### Frontend Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `VITE_API_URL` | `/api/v1` | Backend API URL (proxied) |
+
+### Persistence Configuration (CP 18)
+
+When persistence is enabled, data is stored in JSON files:
+
+```
+./data/
+├── store.json              # Main data snapshot (auto-saved every 5 min)
+└── audit/
+    ├── 2025-01.json        # Monthly audit archives
+    ├── 2025-02.json
+    └── ...                 # 5-year retention
+```
+
+**Sample `store.json` structure:**
+
+```json
+{
+  "users": [
+    {
+      "id": "usr_abc123",
+      "email": "trader@example.com",
+      "status": "verified",
+      "position_limit_usd": 25000,
+      "created_at": "2025-01-15T10:30:00Z"
+    }
+  ],
+  "wallets": [
+    {
+      "id": "wal_xyz789",
+      "user_id": "usr_abc123",
+      "available_usd": 5000.00,
+      "locked_usd": 1500.00,
+      "total_deposited": 10000.00
+    }
+  ],
+  "orders": [
+    {
+      "id": "ord_def456",
+      "user_id": "usr_abc123",
+      "market_ticker": "FED-RATE-MAR",
+      "side": "yes",
+      "quantity": 100,
+      "price_cents": 65,
+      "status": "filled",
+      "created_at": "2025-01-20T14:22:00Z"
+    }
+  ],
+  "positions": [
+    {
+      "id": "pos_ghi012",
+      "user_id": "usr_abc123",
+      "market_ticker": "FED-RATE-MAR",
+      "side": "yes",
+      "quantity": 100,
+      "avg_price_cents": 65,
+      "cost_basis_usd": 65.00
+    }
+  ],
+  "last_saved": "2025-01-20T14:30:00Z"
+}
+```
+
+**Sample audit log entry (`audit/2025-01.json`):**
+
+```json
+{
+  "entries": [
+    {
+      "id": "aud_001",
+      "user_id": "usr_abc123",
+      "action": "order_placed",
+      "entity_type": "order",
+      "entity_id": "ord_def456",
+      "description": "Placed YES order for 100 contracts at 65¢",
+      "ip_address": "192.168.1.1",
+      "timestamp": "2025-01-20T14:22:00Z"
+    }
+  ]
+}
+```
 
 ## 📊 Compliance Features
 
