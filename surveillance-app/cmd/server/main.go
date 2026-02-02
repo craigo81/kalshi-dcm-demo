@@ -692,8 +692,15 @@ func main() {
 	// WebSocket
 	r.HandleFunc("/ws", handler.HandleWebSocket)
 
-	// Static files
-	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./static")))
+	// Static files - check for React build first, then fall back to legacy static
+	staticDir := "./frontend/dist"
+	if _, err := os.Stat(staticDir); os.IsNotExist(err) {
+		staticDir = "./static" // Legacy static HTML
+		log.Println("📄 Serving legacy static HTML")
+	} else {
+		log.Println("⚛️  Serving React build from frontend/dist")
+	}
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir(staticDir)))
 
 	// CORS
 	c := cors.New(cors.Options{

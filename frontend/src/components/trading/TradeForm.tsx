@@ -3,10 +3,34 @@
 // Core Principle 11: Pre-trade margin checks (100% collateralization)
 // Core Principle 5: Position limits enforcement
 
-import React, { useState, useEffect } from 'react';
-import { X, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Loader2, Shield } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Loader2, Shield, Clock, Building2, ShieldCheck } from 'lucide-react';
 import { Market, tradingAPI, PreTradeCheck } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+
+// Risk badge colors based on market risk category (CP 3)
+const riskColors: Record<string, string> = {
+  low: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+  medium: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  high: 'bg-red-500/20 text-red-400 border-red-500/30',
+};
+
+// Format time remaining until market close
+function formatTimeRemaining(closeTime: string): string {
+  const close = new Date(closeTime);
+  const now = new Date();
+  const diff = close.getTime() - now.getTime();
+
+  if (diff <= 0) return 'Closed';
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
 
 interface TradeFormProps {
   market: Market;
@@ -138,6 +162,29 @@ export function TradeForm({ market, onClose, onSuccess }: TradeFormProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Market Info Banner */}
+          <div className="flex flex-wrap items-center gap-2 p-3 bg-slate-800/50 rounded-lg">
+            {/* Risk Category (CP 3) */}
+            <div className={`flex items-center gap-1.5 px-2 py-1 rounded border text-xs ${riskColors[market.risk_category || 'low']}`}>
+              <ShieldCheck className="w-3 h-3" />
+              <span className="font-medium">{(market.risk_category || 'low').toUpperCase()} RISK</span>
+            </div>
+
+            {/* Exchange Routing */}
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 text-xs">
+              <Building2 className="w-3 h-3" />
+              <span className="font-medium">Kalshi DCM</span>
+            </div>
+
+            {/* Time to Close */}
+            {market.close_time && (
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-700 text-slate-300 text-xs ml-auto">
+                <Clock className="w-3 h-3" />
+                <span>{formatTimeRemaining(market.close_time)}</span>
+              </div>
+            )}
+          </div>
+
           {/* Side Selection */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-3">
