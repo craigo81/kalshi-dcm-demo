@@ -51,14 +51,22 @@ func main() {
 	// Configuration
 	port := getEnv("PORT", "8080")
 	kalshiURL := getEnv("KALSHI_API_URL", kalshi.DefaultBaseURL)
+	dataDir := getEnv("DATA_DIR", "./data")
+	persistenceEnabled := getEnv("ENABLE_PERSISTENCE", "true") == "true"
 
 	log.Printf("Starting server on port %s", port)
 	log.Printf("Kalshi API: %s", kalshiURL)
+	log.Printf("Persistence: %v (dir: %s)", persistenceEnabled, dataDir)
 
 	// Initialize components
-	// In-memory store for demo (Core Principle 18: Recordkeeping)
-	store := mock.NewStore()
-	log.Println("✓ Mock data store initialized")
+	// Persistent store for CP 18: 5-year recordkeeping
+	store := mock.NewStoreWithPersistence(mock.PersistenceConfig{
+		Enabled:          persistenceEnabled,
+		DataDir:          dataDir,
+		AutoSaveInterval: 5 * time.Minute,
+		RetentionYears:   5,
+	})
+	log.Println("✓ Persistent data store initialized")
 
 	// Kalshi API client for real market data (Core Principle 3)
 	kalshiClient := kalshi.NewClient(kalshiURL, 30*time.Second)
@@ -123,6 +131,10 @@ func main() {
 
 	log.Println("")
 	log.Println("Shutting down server...")
+
+	// Save data before shutdown (CP 18: Recordkeeping)
+	store.Stop()
+	log.Println("✓ Data persisted")
 
 	// Graceful shutdown with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
